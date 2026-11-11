@@ -46,6 +46,17 @@ jobs:
             *)     echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT ;;
           esac
 
+      - name: Sanitize image name
+        id: image
+        run: |
+          # github.repository = owner/repo-name
+          # 仓库名可能以 - 开头（Docker 不允许），去掉前导 -
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(basename "${{ github.repository }}")
+          # 去掉前导 -，转小写
+          REPO=$(echo "$REPO" | sed 's/^-*//' | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/${OWNER}/${REPO}" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -53,8 +64,8 @@ jobs:
           platforms: ${{ steps.platforms.outputs.platforms }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ inputs.version }}
-            ghcr.io/${{ github.repository }}:latest
+            ${{ steps.image.outputs.name }}:${{ inputs.version }}
+            ${{ steps.image.outputs.name }}:latest
           build-args: |
             VERSION=${{ inputs.version }}
           cache-from: type=gha
