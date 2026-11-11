@@ -10,7 +10,7 @@ on:
       arch:
         description: "Architecture (amd64 / arm64 / both)"
         required: true
-        default: "both"
+        default: "amd64"
 
 jobs:
   build:
