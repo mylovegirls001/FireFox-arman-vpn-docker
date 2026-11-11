@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────
+# Arman VPN Core — Docker Compose
+#
+# 启动：  docker compose up -d
+# 看日志：docker compose logs -f
+# 看面板：http://服务器IP:10820/app/
+# 代理：  SOCKS5 / HTTP  服务器IP:10810
+# 停止：  docker compose down
+# ─────────────────────────────────────────────────────────────
+
+services:
+  arman-vpn:
+    build:
+      context: .
+      # 如果你是 ARM64 机器（如 Apple Silicon / 树莓派 4/5），改成 arm64
+      args:
+        ARCH: amd64
+    container_name: arman-vpn
+    restart: unless-stopped
+
+    # ── 直接用宿主机网络栈 ──
+    # 面板 10820、代理 10810 直接绑定宿主机端口，不需要 ports 映射
+    network_mode: host
+
+    # ── VPN 隧道必需的权限 ──
+    cap_add:
+      - NET_ADMIN        # 创建/操作 TUN 网卡
+    devices:
+      - /dev/net/tun     # 透传 TUN 设备到容器
+
+    # ── 数据持久化（账号、设置、登录态）──
+    volumes:
+      - arman-vpn-data:/opt/arman-vpn/user-data
+
+    # ── 可选环境变量 ──
+    environment:
+      - PANEL_USER=admin       # 面板用户名
+      # - VERBOSE=1             # 取消注释开启调试日志
+
+    # ── 健康检查：面板能访问就算健康 ──
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:10820/app/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  arman-vpn-data:
